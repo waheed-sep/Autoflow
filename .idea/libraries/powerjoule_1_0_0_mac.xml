@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="powerjoule-1.0.0-mac">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/cloned_repo/PowerJoule/dist/powerjoule-1.0.0-mac.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
