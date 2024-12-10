@@ -1,7 +1,7 @@
 # Code Functionality Overview
 ## 1. Running RefactoringMiner
 Identifies the RefactoringMiner executable (RefactoringMiner.bat) in the system's `PATH`.
-Executes RefactoringMiner to analyze all commits in the specified repository and branch (master by default).
+Executes `RefactoringMiner` to analyze all commits in the specified repository and branch (master by default).
 Saves the results as a JSON file in the specified location.
 Outputs success or error messages depending on the execution result.
 ## 2. Extracting Commit Insights
@@ -11,7 +11,7 @@ Merges the metadata with refactoring counts to create a detailed DataFrame of co
 Sorts the commits by the number of refactorings found, in descending order.
 Exports the data to a CSV file named Commits insights.csv.
 ## 3. Counting Refactoring Types
-Reads the JSON output from RefactoringMiner.
+Reads the JSON output from `RefactoringMiner`.
 Extracts and counts occurrences of the `type` attribute (representing different refactoring types) using a regex pattern.
 Creates a sorted dictionary of refactoring types and their occurrences.
 Converts the dictionary to a DataFrame.
@@ -30,7 +30,7 @@ The results of each operation, including success or failure details, are recorde
 The outputs (`Commits insights.csv` and `Refs-type counts.csv`) are saved in the specified output directory.
 
 **Notes for Users**
-Ensure that the RefactoringMiner executable is available in the system's PATH.
+Ensure that the `RefactoringMiner` executable is available in the system's PATH.
 Update the configuration variables `(REPO_PATH, JSON_OUTPUT, CSV_OUTPUT)` as per your system's setup.
 Python packages such as `pandas`, `pydriller`, and `xml.etree.ElementTree` are required to run this script. Install them using pip if not already installed.
 The script assumes that the repository is already cloned and accessible in the specified `REPO_PATH`.

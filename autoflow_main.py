@@ -7,12 +7,12 @@ import pandas as pd
 import json
 import os
 import xml.etree.ElementTree as ET
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# # Configuration variables
-REPO_PATH = "E:/Univaq/assigned_tasks/xstream"  # Path to the already cloned repository
-JSON_OUTPUT = "E:/Univaq/assigned_tasks/xstream/Results/final_results.json"
-CSV_OUTPUT = "E:/Univaq/assigned_tasks/xstream/Results/"
+# Configuration variables
+RESULTS_OUTPUT = "/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/"  # Store all results (json, csv, jmh)
+REPO_PATH = "/home/waheed/Univaq/assigned_tasks/xstream"  # Path to the already cloned repository
+JSON_OUTPUT = RESULTS_OUTPUT + "/refactoring_results.json"
+# CSV_OUTPUT = "/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/"
 
 
 def run_refactoring_miner(repo, json_output, branch_name='master'):
@@ -21,23 +21,29 @@ def run_refactoring_miner(repo, json_output, branch_name='master'):
     # Find the path for RefactoringMiner from the system's environment PATH variable
     refactoring_miner_path = None
     for path in os.environ['PATH'].split(os.pathsep):
-        candidate_path = os.path.join(path, "RefactoringMiner.bat")
+        candidate_path = os.path.join(path,
+                                      "/home/waheed/RefactoringMiner/build/distributions/RefactoringMiner-3.0.10/bin/RefactoringMiner")
         if os.path.isfile(candidate_path):
             refactoring_miner_path = candidate_path
             break
 
     if not refactoring_miner_path:
-        print("Error: RefactoringMiner.bat not found in system PATH.")
+        print("Error: RefactoringMiner not found in system PATH.")
         return
 
     # Construct the command for analyzing all commits in the specified branch
     command = [refactoring_miner_path, '-a', repo, branch_name, '-json', json_output]
 
+    # Explicitly set JAVA_HOME in the environment
+    env = os.environ.copy()
+    env['JAVA_HOME'] = "/usr/lib/jvm/java-1.21.0-openjdk-amd64"
+    env['PATH'] = f"/usr/lib/jvm/java-1.21.0-openjdk-amd64/bin:" + env['PATH']
+
     # print("Running RefactoringMiner with command:", " ".join(command))
-    print("1. Running RefactoringMiner ...")
+    print("1. Running RefactoringMiner...")
 
     # Run the command and capture output
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
 
     if result.returncode == 0:
         print(f"1.1 RefactoringMiner operation successful. Results saved in {json_output}.")
@@ -118,7 +124,7 @@ df_commits = pd.DataFrame(commit_data)
 df_commits.sort_values(by="Refactorings found", ascending=False, inplace=True)
 
 # Export the DataFrame to a CSV file
-df_commits.to_csv(CSV_OUTPUT + 'Commits insights.csv', index=False)
+df_commits.to_csv(RESULTS_OUTPUT + 'Commits insights.csv', index=False)
 print("2. Data has been exported to 'Commits insights.csv'.")
 
 
@@ -150,13 +156,13 @@ type_counts_outer = extract_type_counts(JSON_OUTPUT)
 df_type_counts = pd.DataFrame(type_counts_outer.items(), columns=["Refactorings found", "Occurrences"])
 
 # Export the DataFrame to a CSV file
-df_type_counts.to_csv(CSV_OUTPUT + 'Refs-type counts.csv', index=False)
+df_type_counts.to_csv(RESULTS_OUTPUT + 'Refs-type counts.csv', index=False)
 print("3. Data has been exported to 'Refs-type counts.csv'.")
 
 ######################## maven build and success/failed status #########################
 
 # Directory to store renamed JARs
-OUTPUT_DIR = os.path.join(REPO_PATH, 'commit-jars')
+OUTPUT_DIR = os.path.join(RESULTS_OUTPUT, 'commit-jars')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
@@ -213,7 +219,7 @@ def update_maven_compiler_options(pom_path):
 
 
 # Load the CSV into a DataFrame
-df = pd.read_csv(CSV_OUTPUT + 'Commits insights.csv')
+df = pd.read_csv(RESULTS_OUTPUT + 'Commits insights.csv')
 
 # Ensure the "Status" and "Error cause" columns exist
 if 'Status' not in df.columns:
@@ -232,12 +238,28 @@ else:
         print(f"\nProcessing commit: {commit_hash}")
         os.chdir(REPO_PATH)
 
-        # Stash any local changes
+        # # Stash any local changes
+        # try:
+        #     subprocess.run(["git", "stash"], check=True)
+        #     print("Local changes stashed successfully.")
+        # except subprocess.CalledProcessError as e:
+        #     print(f"Failed to stash local changes: {e}")
+        #     continue
+
+        # Stash any local changes, including untracked files
         try:
-            subprocess.run(["git", "stash"], check=True)
-            print("Local changes stashed successfully.")
+            subprocess.run(["git", "stash", "-u"], check=True)
+            print("Local changes (including untracked files) stashed successfully.")
         except subprocess.CalledProcessError as e:
             print(f"Failed to stash local changes: {e}")
+            continue
+
+        # Clean untracked files if any exist
+        try:
+            subprocess.run(["git", "clean", "-fd"], check=True)
+            print("Untracked files cleaned successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to clean untracked files: {e}")
             continue
 
         # Checkout to the specific commit
@@ -256,7 +278,7 @@ else:
 
         # Compile the project
         try:
-            subprocess.run(["mvn.cmd", "clean", "package", "-DskipTests", "-Drat.skip=true"],
+            subprocess.run(["mvn", "clean", "package", "-DskipTests", "-Drat.skip=true"],
                            check=True)
             print(f"Project compiled successfully for commit {commit_hash}")
             df.loc[df['Commit'] == commit_hash, 'Status'] = 'Success'
@@ -265,5 +287,62 @@ else:
             df.loc[df['Commit'] == commit_hash, ['Status', 'Error cause']] = ['Failed', str(e)]
 
 # Save the updated DataFrame back to a CSV file
-df.to_csv(CSV_OUTPUT + 'Commits insights.csv', index=False)
-print("Status and error causes have been recorded in 'Commits insights.csv'.")
+df.to_csv(RESULTS_OUTPUT + 'Commits insights.csv', index=False)
+print("Builds statuses have been recorded in 'Commits insights.csv'.")
+
+####################### Filter for commits with 'Refactorings found' >= 20 and 'Success' in 'Status' ########################
+filtered_commits = df[(df['Refactorings found'] >= 20) & (df['Status'] == 'Success')]['Commit'].tolist()
+
+# Process each filtered commit
+if not filtered_commits:
+    print("5. No commits found with 'Refactorings found' >= 20 and 'Success' status.")
+else:
+    for commit_hash in filtered_commits:
+        print(f"\nProcessing commit: {commit_hash}")
+        os.chdir(REPO_PATH)
+
+        # Stash any local changes
+        try:
+            subprocess.run(["git", "stash"], check=True)
+            print("5.1 Local changes stashed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"5.1 Failed to stash local changes: {e}")
+            continue
+
+        # Checkout to the specific commit
+        try:
+            subprocess.run(["git", "checkout", commit_hash], check=True)
+            print(f"5.2 Checked out to commit {commit_hash}")
+        except subprocess.CalledProcessError as e:
+            print(f"5.2 Failed to checkout to commit {commit_hash}: {e}")
+            continue
+
+        # Clean previous build artifacts
+        subprocess.run(["mvn", "clean"], check=True)
+
+        # Update pom.xml if present
+        pom_path1 = os.path.join(REPO_PATH, 'pom.xml')
+        if os.path.exists(pom_path1):
+            update_maven_compiler_options(pom_path1)
+
+        # Compile the project
+        try:
+            subprocess.run(["mvn", "package", "-DskipTests", "-Drat.skip=true", "-Dmaven.javadoc.skip=true"],
+                           check=True)
+            print(f"5.3 Project compiled successfully for commit {commit_hash}")
+
+            # Copy and rename only the main JAR file to avoid duplications
+            target_dir = os.path.join(REPO_PATH, "xstream/target")
+            if os.path.exists(target_dir):
+                jar_files = [f for f in os.listdir(target_dir) if f.endswith(".jar")]
+                for jar_file in jar_files:
+                    if "tests" not in jar_file and "sources" not in jar_file and "test-sources" not in jar_file:
+                        old_jar_path = os.path.join(target_dir, jar_file)
+                        new_jar_name = f"{commit_hash[:8]}-{jar_file}"
+                        new_jar_path = os.path.join(OUTPUT_DIR, new_jar_name)
+                        shutil.copy2(old_jar_path, new_jar_path)
+                        print(f"Copied and renamed {jar_file} to {new_jar_name}")
+        except subprocess.CalledProcessError as e:
+            print(f"5.3 Failed to compile project at commit {commit_hash}: {e}")
+
+print("5.4 Process completed.")
