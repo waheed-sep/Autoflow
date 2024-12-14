@@ -4,11 +4,11 @@ import shutil
 
 # Paths
 REPO = r"/home/waheed/Univaq/assigned_tasks/xstream"
-COMMIT_JARS = r"/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/commit-jars"
+COMMIT_JARS = r"/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/Commit-jars"
 JMH_DIR = r"/home/waheed/Univaq/JMH_test"
 JMH_RESULTS = "/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/JMH-Results"
 RESULTS_DIR = "/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/"
-os.makedirs(RESULTS_DIR, exist_ok=True)
+os.makedirs(JMH_RESULTS, exist_ok=True)
 
 # Maven install command
 MAVEN_INSTALL_CMD = [
