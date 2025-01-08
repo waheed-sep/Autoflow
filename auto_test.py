@@ -29,10 +29,10 @@ def execute_and_store_results():
     workbook.remove(workbook.active)
 
     # Run each script and store its output into separate sheets in the workbook
-    print("Running autoflow_main.py...")
-    run_script('autoflow_main.py')
-    # Assuming autoflow_main.py generates an output that can be read and written to Excel
-    # Replace this with actual code to load the output from autoflow_main.py
+    print("Running autoflow_xstream.py...")
+    run_script('autoflow_xstream.py')
+    # Assuming autoflow_xstream.py generates an output that can be read and written to Excel
+    # Replace this with actual code to load the output from autoflow_xstream.py
     autoflow_data = [['Column1', 'Column2'], ['Data1', 'Data2']]  # Example data
     write_to_excel('Autoflow Main', autoflow_data, workbook)
 
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 # # Function to run a script and capture its output
 # def run_script(script_name):
 #     try:
-#         result = subprocess.run(['python3', 'autoflow_main.py'], capture_output=True, text=True, check=True)
+#         result = subprocess.run(['python3', 'autoflow_xstream.py'], capture_output=True, text=True, check=True)
 #         return result.stdout
 #     except subprocess.CalledProcessError as e:
 #         print(f"Error occurred while running {script_name}: {e}")

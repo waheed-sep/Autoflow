@@ -9,19 +9,15 @@ import os
 import xml.etree.ElementTree as ET
 
 # Configuration variables
-REPO = r"/home/waheed/Univaq/assigned_tasks/xstream"
-# REPO_PATH = "/home/waheed/Univaq/assigned_tasks/xstream"  # Path to the already cloned repository
-
-RESULTS_OUTPUT = "/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/"  # Store all results (json, csv, jmh)
-# RESULTS_DIR = "/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/"
-# CSV_OUTPUT = "/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/"
-
+REPO = r"/home/waheed/Univaq/assigned_tasks/eclipse-collections"
+RESULTS_OUTPUT = "/home/waheed/Univaq/assigned_tasks/Final-Results/ECLIPSE_COLLECTIONS-Results"  # Store all results (json, csv, jmh)
+COMMIT_JARS = RESULTS_OUTPUT + "/Commit-Jars"
+JMH_RESULTS = RESULTS_OUTPUT + "/JMH-Results"
 JSON_OUTPUT = RESULTS_OUTPUT + "/Refactoring_results.json"
-COMMIT_JARS = r"/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/Commit-jars"
-JMH_DIR = r"/home/waheed/Univaq/JMH_test"
-JMH_RESULTS = "/home/waheed/Univaq/assigned_tasks/Final-Results/XSTREAM-Results/JMH-Results"
-os.makedirs(JMH_RESULTS, exist_ok=True)
+JMH_DIR = "/home/waheed/Univaq/JMH_ECollections"
 
+os.makedirs(COMMIT_JARS, exist_ok=True)
+os.makedirs(JMH_RESULTS, exist_ok=True)
 
 def run_refactoring_miner(repo, json_output, branch_name='master'):
     """Runs RefactoringMiner with the specified switches on a repository."""
@@ -29,8 +25,7 @@ def run_refactoring_miner(repo, json_output, branch_name='master'):
     # Find the path for RefactoringMiner from the system's environment PATH variable
     refactoring_miner_path = None
     for path in os.environ['PATH'].split(os.pathsep):
-        candidate_path = os.path.join(path,
-                                      "/home/waheed/RefactoringMiner/build/distributions/RefactoringMiner-3.0.10/bin/RefactoringMiner")
+        candidate_path = os.path.join(path, "/home/waheed/RefactoringMiner/build/distributions/RefactoringMiner-3.0.10/bin/RefactoringMiner")
         if os.path.isfile(candidate_path):
             refactoring_miner_path = candidate_path
             break
@@ -131,7 +126,7 @@ df_commits = pd.DataFrame(commit_data)
 df_commits.sort_values(by="Refactorings found", ascending=False, inplace=True)
 
 # Export the DataFrame to a CSV file
-df_commits.to_csv(RESULTS_OUTPUT + 'Commits insights.csv', index=False)
+df_commits.to_csv(RESULTS_OUTPUT + '/Commits insights.csv', index=False)
 print("2. Data has been exported to 'Commits insights.csv'.")
 
 
@@ -163,15 +158,11 @@ type_counts_outer = extract_type_counts(JSON_OUTPUT)
 df_type_counts = pd.DataFrame(type_counts_outer.items(), columns=["Refactorings found", "Occurrences"])
 
 # Export the DataFrame to a CSV file
-df_type_counts.to_csv(RESULTS_OUTPUT + 'Refs-type counts.csv', index=False)
+df_type_counts.to_csv(RESULTS_OUTPUT + '/Refs-type counts.csv', index=False)
 print("3. Data has been exported to 'Refs-type counts.csv'.")
 
-######################## maven build and success/failed status #########################
 
-# Directory to store renamed JARs
-OUTPUT_DIR = os.path.join(RESULTS_OUTPUT, 'Commit-jars')
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
+####################### maven build and success/failed status #########################
 
 # Function to update the Maven compiler options in pom.xml
 def update_maven_compiler_options(pom_path):
@@ -226,7 +217,7 @@ def update_maven_compiler_options(pom_path):
 
 
 # Load the CSV into a DataFrame
-df = pd.read_csv(RESULTS_OUTPUT + 'Commits insights.csv')
+df = pd.read_csv(RESULTS_OUTPUT + '/Commits insights.csv')
 
 # Ensure the "Status" and "Error cause" columns exist
 if 'Status' not in df.columns:
@@ -277,7 +268,7 @@ else:
 
         # Compile the project
         try:
-            subprocess.run(["mvn", "clean", "package", "-DskipTests", "-Drat.skip=true"],
+            subprocess.run(["mvn", "clean", "package", "-Dmaven.test.skip=true", "-Drat.skip=true"],
                            check=True)
             print(f"Project compiled successfully for commit {commit_hash}")
             df.loc[df['Commit'] == commit_hash, 'Status'] = 'Success'
@@ -286,7 +277,7 @@ else:
             df.loc[df['Commit'] == commit_hash, ['Status', 'Error cause']] = ['Failed', str(e)]
 
 # Save the updated DataFrame back to a CSV file
-df.to_csv(RESULTS_OUTPUT + 'Commits insights.csv', index=False)
+df.to_csv(RESULTS_OUTPUT + '/Commits insights.csv', index=False)
 print("Builds statuses have been recorded in 'Commits insights.csv'.")
 
 # Filter for commits with 'Refactorings found' >= 20 and 'Success' in 'Status'
@@ -326,19 +317,19 @@ else:
 
         # Compile the project
         try:
-            subprocess.run(["mvn", "package", "-DskipTests", "-Drat.skip=true", "-Dmaven.javadoc.skip=true"],
+            subprocess.run(["mvn", "package", "-Dmaven.test.skip=true", "-Drat.skip=true", "-Dmaven.javadoc.skip=true"],
                            check=True)
             print(f"5.3 Project compiled successfully for commit {commit_hash}")
 
             # Copy and rename only the main JAR file to avoid duplications
-            target_dir = os.path.join(REPO, "xstream/target")
+            target_dir = os.path.join(REPO, "eclipse-collections/target")
             if os.path.exists(target_dir):
                 jar_files = [f for f in os.listdir(target_dir) if f.endswith(".jar")]
                 for jar_file in jar_files:
                     if "tests" not in jar_file and "sources" not in jar_file and "test-sources" not in jar_file:
                         old_jar_path = os.path.join(target_dir, jar_file)
                         new_jar_name = f"{commit_hash[:8]}-{jar_file}"
-                        new_jar_path = os.path.join(OUTPUT_DIR, new_jar_name)
+                        new_jar_path = os.path.join(COMMIT_JARS, new_jar_name)
                         shutil.copy2(old_jar_path, new_jar_path)
                         print(f"Copied and renamed {jar_file} to {new_jar_name}")
         except subprocess.CalledProcessError as e:
@@ -346,42 +337,42 @@ else:
 
 print("5.4 Process completed.")
 
-####################### Calling commits_jmh.py #######################
+###################### Calling commits_jmh.py #######################
 
 # Maven install command
 MAVEN_INSTALL_CMD = [
     "mvn", "install:install-file",
-    "-DgroupId=com.thoughtworks.xstream",
-    "-DartifactId=xstream",
+    "-DgroupId=org.eclipse.collections",
+    "-DartifactId=collections",
     "-Dversion=waheed",
     "-Dpackaging=jar",
 ]
 
 
 def process_jars():
-    # Get the list of JAR files in commit-jars directory
-    jar_files = [
+    # Get the list of JAR files in Commit-jars directory
+    jar_files2 = [
         f for f in os.listdir(COMMIT_JARS)
         if f.endswith(".jar") and "javadoc" not in f.lower()
     ]
 
-    print(f"6.1 Found {len(jar_files)} JAR files to process (excluding 'javadoc' jars).")
+    print(f"6.1 Found {len(jar_files2)} JAR files to process (excluding 'javadoc' jars).")
 
-    if not jar_files:
+    if not jar_files2:
         print("6.2 No valid JAR files found to process.")
         return
 
-    for jar_file in jar_files:
+    for jar_file2 in jar_files2:
         try:
             # Extract the first 8 characters of the JAR name
-            jar_name_prefix = jar_file[:8]
-            jar_path = os.path.join(COMMIT_JARS, jar_file)
+            jar_name_prefix = jar_file2[:8]
+            jar_path = os.path.join(COMMIT_JARS, jar_file2)
 
-            print(f"\n6.3 Processing JAR: {jar_file} (prefix: {jar_name_prefix})")
+            print(f"\n6.3 Processing JAR: {jar_file2} (prefix: {jar_name_prefix})")
 
             # Install the JAR with Maven
             subprocess.run(MAVEN_INSTALL_CMD + [f"-Dfile={jar_path}"], check=True)
-            print(f"6.4 Installed {jar_file} successfully.")
+            print(f"6.4 Installed {jar_file2} successfully.")
 
             # Build the Uber JAR for JMH_test
             os.chdir(JMH_DIR)
@@ -404,21 +395,21 @@ def process_jars():
                 print(f"6.6 Saved benchmark output to {output_file}")
 
                 # Rename and move the generated res.csv file
-                res_csv_path = os.path.join(RESULTS_OUTPUT, "result.csv")
-                if os.path.exists(res_csv_path):
-                    summary_csv_path = os.path.join(JMH_RESULTS, f"{jar_name_prefix}-summary.csv")
-                    shutil.move(res_csv_path, summary_csv_path)
-                    print(f"6.7 Renamed and moved CSV to {summary_csv_path}")
+                result_csv = os.path.join(RESULTS_OUTPUT, "result.csv")
+                if os.path.exists(result_csv):
+                    summary_csv = os.path.join(JMH_RESULTS, f"{jar_name_prefix}-summary.csv")
+                    shutil.move(result_csv, summary_csv)
+                    print(f"6.7 Saved CSV to {summary_csv}.")
                 else:
-                    print(f"6.7 No res.csv file found for JAR: {jar_file}")
+                    print(f"6.7 No result.csv file found for JAR: {jar_file2}")
 
         except subprocess.CalledProcessError as e:
-            print(f"6.8 Error processing {jar_file}: {e}")
+            print(f"Error processing {jar_file2}: {e}")
         except Exception as e:
-            print(f"6.8 Unexpected error for {jar_file}: {e}")
+            print(f"Unexpected error for {jar_file2}: {e}")
 
-    print("\n6.9 Processing completed.")
+    print("\nProcessing completed.")
 
-
+0
 if __name__ == "__main__":
     process_jars()
